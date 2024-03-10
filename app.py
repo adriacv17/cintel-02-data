@@ -1,31 +1,96 @@
 import plotly.express as px
 from shiny.express import input, ui
+from shiny import render
 from shinywidgets import render_plotly
+import pandas as pd
+import seaborn as sns
 import palmerpenguins  # This package provides the Palmer Penguins dataset
-
-# added sidebar with select input for choosing either male or female. Not interactive yet.
-with ui.sidebar(position="right", bg="#f8f8f8"):
-    "Module 2 Sidebar"
-    ui.input_select("sex", "Choose the penguin's sex", ["MALE", "FEMALE"])
 
 # Use the built-in function to load the Palmer Penguins dataset
 penguins_df = palmerpenguins.load_penguins()
 
-# Using dataframe methods to gather the first and last 3 of the dataframe
-penguins_df.head(3)
-penguins_df.tail(3)
-
 # added title to main page
 ui.page_opts(title="Adrian's Penguin Data", fillable=True)
-with ui.layout_columns():
 
-    # made a scatterplot from information from dataframe
-    @render_plotly
-    def scatterplot():
-        return px.scatter(
-            penguins_df, x="bill_length_mm", y="body_mass_g", color="species")
+# Use ui.input_selectize() to create a dropdown input to choose a column
+with ui.sidebar(open="open"):
+    ui.h2("Sidebar")
+    ui.input_selectize(
+        "selected_attribute",
+        "select attribute",
+        ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"],
+    )
+
+    # Use ui.input_numeric() to create a numeric input for the number of Plotly histogram bins
+    ui.input_numeric("plotly_bin_count", "plotly bin count", 100)
+    
+    # Use ui.input_slider() to create a slider input for the number of Seaborn bins
+    ui.input_slider("seaborn_bin_count", "seaborn bin count", 1, 200, 100)
+    
+    # Use ui.input_checkbox_group() to create a checkbox group input to filter the species
+    ui.input_checkbox_group(
+        "selected_species_list",
+        "select species",
+        ["Adelie", "Gentoo", "Chinstrap"],
+        selected=["Gentoo", "Chinstrap"],
+        inline=True,
+    )
+
+    # Use ui.hr() to add a horizontal rule to the sidebar
+    ui.hr()
+    
+    # Use ui.a() to add a hyperlink to the sidebar
+    ui.a(
+        "Adrian's GitHub Repo",
+        href="https://github.com/adriacv17/cintel-02-data/blob/main/app.py",
+        target="_blank",
+    )
+
+# create a layout to include 2 cards with a data table and data grid
+with ui.layout_columns(col_widths=(4, 8)):
+    with ui.card(full_screen=True): # full_screen option to view expanded table/grid
+        ui.h2("Penguin Data Table")
+
+        @render.data_frame
+        def penguins_datatable():
+            return render.DataTable(penguins_df)
+
+    with ui.card(full_screen=True): # full_screen option to view expanded table/grid
+        ui.h2("Penguin Data Grid")
+
+        @render.data_frame
+        def penguins_datagrid():
+            return render.DataGrid(penguins_df)
+
+# added a horizontal rule
+ui.hr()
+
+# create a layout to include 3 cards with different plots
+with ui.layout_columns():
+    with ui.card(full_screen=True):
+        ui.h2("Species Plotly Histogram")
+
+        @render_plotly
+        def plotly_histogram():
+            return px.histogram(penguins_df, x="species")
+
+    with ui.card(full_screen=True):
+        ui.h2("Seaborn Histogram")
+
+        @render.plot(alt="Species Seaborn Histogram")
+        def seaborn_histogram():
+            return sns.histplot(data=penguins_df, x="species")
+
+    with ui.card(full_screen=True):
+        ui.h2("Species Plotly Scatterplot")
         
-    # modified original histogram to include penguins_dataframe data
-    @render_plotly
-    def plot1():
-        return px.histogram(penguins_df, y="flipper_length_mm")
+        @render_plotly
+        def plotly_scatterplot():
+            return px.scatter(
+                penguins_df,
+                title="Plotly Scatterplot",
+                x="body_mass_g",
+                y="bill_length_mm",
+                color="species",
+                symbol="species",
+            )
